@@ -1,0 +1,4 @@
+# ESP-IDF components required by our application.
+dependencies:
+  # DHT22 temperature and humidity driver; pin its version.
+  esp-idf-lib/dht: "1.1.4"

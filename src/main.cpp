@@ -1,18 +1,36 @@
 #include "esp_log.h"             // ESP-IDF logging, including ESP_LOGI().
 #include "freertos/FreeRTOS.h"    // FreeRTOS definitions and time conversion macros.
 #include "freertos/task.h"        // Task creation and blocking-delay functions.
+#include "dht.h"       // DHT sensor reading functions.
+#include "esp_err.h"   // Converts error codes into readable names.
 
 // Label attached to our log messages so we can identify their source.
 static const char *TAG = "ROOM_MONITOR";
 
-// Practice task A: print approximately every second once this task is created.
-// FreeRTOS requires a void* input parameter; this task does not use it.
+// Read temperature and humidity approximately every two seconds.
 static void taskA(void *parameter)
 {
+    // Let the sensor settle after power-up.
+    vTaskDelay(pdMS_TO_TICKS(2000));
+
     while (true) {
-        ESP_LOGI(TAG, "Task A running");
-        // Convert milliseconds to scheduler ticks and block so other tasks can run.
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        float temperature = 0;
+        float humidity = 0;
+
+        // DHT22 uses AM2301 mode; its data wire connects to GPIO 4.
+        esp_err_t result = dht_read_float_data(
+            DHT_TYPE_AM2301, GPIO_NUM_4, &humidity, &temperature);
+
+        if (result == ESP_OK) {
+            ESP_LOGI(TAG, "Temperature: %.2f C | Humidity: %.2f %%",
+                     temperature, humidity);
+        } else {
+            ESP_LOGW(TAG, "DHT read failed: %s",
+                     esp_err_to_name(result));
+        }
+
+        // Wait at least two seconds before reading again.
+        vTaskDelay(pdMS_TO_TICKS(2000));
     }
 }
 
@@ -21,7 +39,7 @@ static void taskB(void *parameter)
 {
     while (true) {
         ESP_LOGI(TAG, "Task B running");
-        // Block for two seconds to make this task's timing different from task A.
+       // Block for two seconds so other ready tasks can run.
         vTaskDelay(pdMS_TO_TICKS(2000));
     }
 }
