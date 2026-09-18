@@ -3,13 +3,27 @@
 #include "freertos/task.h"        // Task creation and blocking-delay functions.
 #include "dht.h"       // DHT sensor reading functions.
 #include "esp_err.h"   // Converts error codes into readable names.
+#include "esp_adc/adc_oneshot.h" // Read individual analog measurements.
 
 // Label attached to our log messages so we can identify their source.
 static const char *TAG = "ROOM_MONITOR";
 
-// Read temperature and humidity approximately every two seconds.
+// Read temperature, humidity, and light approximately every two seconds.
 static void taskA(void *parameter)
 {
+     // Create an ADC1 instance, owned and used by this task.
+    adc_oneshot_unit_handle_t adcHandle = nullptr;
+    adc_oneshot_unit_init_cfg_t unitConfig = {};
+    unitConfig.unit_id = ADC_UNIT_1;
+    ESP_ERROR_CHECK(adc_oneshot_new_unit(&unitConfig, &adcHandle));
+
+     // GPIO 34 is ADC1 channel 6 on this ESP32.
+    adc_oneshot_chan_cfg_t channelConfig = {};
+    channelConfig.bitwidth = ADC_BITWIDTH_12;
+    channelConfig.atten = ADC_ATTEN_DB_12;
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(
+        adcHandle, ADC_CHANNEL_6, &channelConfig));
+
     // Let the sensor settle after power-up.
     vTaskDelay(pdMS_TO_TICKS(2000));
 
@@ -27,6 +41,22 @@ static void taskA(void *parameter)
         } else {
             ESP_LOGW(TAG, "DHT read failed: %s",
                      esp_err_to_name(result));
+        }
+
+        // Read the LDR voltage as a raw 12-bit ADC value.
+        int lightRaw = 0;
+        esp_err_t lightResult = adc_oneshot_read(
+            adcHandle, ADC_CHANNEL_6, &lightRaw);
+
+        if (lightResult == ESP_OK) {
+            // Invert the ADC scale: lower voltage means brighter light.
+            // Relative indication only; this is not calibrated lux.
+            int lightPercent = ((4095 - lightRaw) * 100) / 4095;
+
+            ESP_LOGI(TAG, "Light: %d%% | Raw: %d", lightPercent, lightRaw);
+        } else {
+            ESP_LOGW(TAG, "LDR read failed: %s",
+                     esp_err_to_name(lightResult));
         }
 
         // Wait at least two seconds before reading again.
