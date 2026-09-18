@@ -5,6 +5,8 @@
 #include "freertos/task.h"
 #include "dht.h"
 #include "esp_adc/adc_oneshot.h"
+#include "sensor_data.h"  // Measurement format.
+#include "rtos_objects.h" // Shared queue.
 
 // Label for messages from the sensor module.
 static const char *TAG = "ROOM_MONITOR";
@@ -63,7 +65,21 @@ void sensorTask(void *parameter)
             ESP_LOGW(TAG, "LDR read failed: %s",
                      esp_err_to_name(lightResult));
         }
+        
+        // Send only when both sensor reads succeeded.
+        if (result == ESP_OK && lightResult == ESP_OK) {
+            SensorData readings{};
+            readings.temperature = temperature;
+            readings.humidity = humidity;
+            readings.lightLevel = ((4095 - lightRaw) * 100) / 4095;
+            // motionDetected remains false; PIR is not implemented yet.
 
+            // Copy the readings into the queue without waiting.
+            if (xQueueSend(sensorQueue, &readings, 0) != pdTRUE) {
+                ESP_LOGW(TAG, "Sensor queue full; reading dropped");
+            }
+        }
+        
         // Wait until the next scheduled sampling time to reduce drift.
         vTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(2000));
     }

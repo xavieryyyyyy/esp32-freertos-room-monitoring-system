@@ -2,19 +2,27 @@
 #include "freertos/FreeRTOS.h"    // FreeRTOS definitions and time conversion macros.
 #include "freertos/task.h"        // Task creation and blocking-delay functions.
 #include "sensors.h" // Declares the sensor task implemented in sensors.cpp.
+#include "sensor_data.h"  // Format of each queued reading.
+#include "rtos_objects.h" // Shared queue handle.
 
 // Label attached to our log messages so we can identify their source.
 static const char *TAG = "ROOM_MONITOR";
 
 
-
-// Practice task B: print approximately every two seconds once created.
+// Temporary diagnostic consumer: wait for a reading, then print it.
 static void taskB(void *parameter)
 {
+    SensorData readings{};
+
     while (true) {
-        ESP_LOGI(TAG, "Task B running");
-       // Block for two seconds so other ready tasks can run.
-        vTaskDelay(pdMS_TO_TICKS(2000));
+        // Block until an item arrives; receiving removes it from the queue.
+        if (xQueueReceive(sensorQueue, &readings, portMAX_DELAY) == pdTRUE) {
+            ESP_LOGI(TAG,
+                     "Queue received: %.2f C | %.2f %% | Light: %d%%",
+                     readings.temperature,
+                     readings.humidity,
+                     readings.lightLevel);
+        }
     }
 }
 
@@ -24,7 +32,11 @@ extern "C" void app_main(void)
 {
     ESP_LOGI(TAG, "BCA152 FreeRTOS Multisensor");
     ESP_LOGI(TAG, "System starting...");
-
+    
+    // Store up to five complete SensorData items.
+    sensorQueue = xQueueCreate(5, sizeof(SensorData));
+    configASSERT(sensorQueue != nullptr);
+    
     // Start SensorTask: 2048-byte stack, no input, priority 1, no saved handle.
     BaseType_t resultA = xTaskCreate(
         sensorTask, "SensorTask", 2048, nullptr, 1, nullptr);
