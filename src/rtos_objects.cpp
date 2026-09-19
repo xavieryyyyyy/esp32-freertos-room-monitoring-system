@@ -9,3 +9,6 @@ QueueHandle_t displayModeQueue = nullptr;
 
 // Created during startup before sensor and alarm tasks begin.
 QueueHandle_t alarmQueue = nullptr;
+
+// Created during startup; shared by tasks that publish or read status.
+EventGroupHandle_t systemEvents = nullptr;

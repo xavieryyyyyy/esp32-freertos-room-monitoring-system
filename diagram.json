@@ -28,7 +28,8 @@
       "top": 50.4,
       "left": 165,
       "attrs": { "volume": "0.1" }
-    }
+    },
+    { "type": "wokwi-pir-motion-sensor", "id": "pir1", "top": 148, "left": 223.02, "attrs": {} }
   ],
   "connections": [
     [ "esp:TX", "$serialMonitor:RX", "", [] ],
@@ -51,7 +52,12 @@
     [ "esp:19", "encoder1:DT", "cyan", [ "h9.6", "v115.2", "h432", "v-124.8" ] ],
     [ "esp:25", "bb1:43t.a", "red", [ "v0", "h-9.45", "v115.2" ] ],
     [ "bz1:2", "bb1:43t.a", "red", [ "v0" ] ],
-    [ "bz1:1", "bb1:tn.34", "black", [ "v0" ] ]
+    [ "bz1:1", "bb1:tn.34", "black", [ "v0" ] ],
+    [ "pir1:GND", "bb1:tn.41", "black", [ "v0" ] ],
+    [ "esp:5V", "bb1:49t.c", "red", [ "h0.15", "v48" ] ],
+    [ "pir1:VCC", "bb1:49t.c", "red", [ "v0" ] ],
+    [ "esp:27", "bb1:50t.b", "white", [ "h-19.05", "v105.6", "h38.4" ] ],
+    [ "pir1:OUT", "bb1:50t.b", "white", [ "v0" ] ]
   ],
   "serialMonitor": { "display": "always" },
   "dependencies": {}

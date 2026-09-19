@@ -2,3 +2,8 @@
 dependencies:
   # DHT22 temperature and humidity driver; pin its version.
   esp-idf-lib/dht: "1.1.4"
+
+ # OLED driver fetched from its Git repository.
+  nopnop2002/ssd1306:
+    path: components/ssd1306/
+    git: https://github.com/nopnop2002/esp-idf-ssd1306.git
