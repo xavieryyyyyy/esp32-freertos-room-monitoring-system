@@ -8,3 +8,6 @@ extern QueueHandle_t sensorQueue;
 
 // Carries the selected page from InputTask to DisplayTask.
 extern QueueHandle_t displayModeQueue;
+
+// Delivers temperature readings to AlarmTask independently of DisplayTask.
+extern QueueHandle_t alarmQueue;

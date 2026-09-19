@@ -45,6 +45,10 @@ void sensorTask(void *parameter)
         if (result == ESP_OK) {
             ESP_LOGI(TAG, "Temperature: %.2f C | Humidity: %.2f %%",
                      temperature, humidity);
+            
+        // Publish temperature independently of the light measurement.
+            xQueueOverwrite(alarmQueue, &temperature);
+
         } else {
             ESP_LOGW(TAG, "DHT read failed: %s",
                      esp_err_to_name(result));

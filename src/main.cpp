@@ -7,7 +7,7 @@
 #include "display.h" // Declares the display task.
 #include "display_mode.h" // Type of page-selection messages.
 #include "input.h" // Rotary-encoder task.
-
+#include "alarm.h" // AlarmTask declaration.
 
 // Label attached to our log messages so we can identify their source.
 static const char *TAG = "ROOM_MONITOR";
@@ -27,6 +27,10 @@ extern "C" void app_main(void)
     // Keep only the latest requested display page.
     displayModeQueue = xQueueCreate(1, sizeof(DisplayMode));
     configASSERT(displayModeQueue != nullptr);
+
+    // Keep the latest temperature for AlarmTask.
+    alarmQueue = xQueueCreate(1, sizeof(float));
+    configASSERT(alarmQueue != nullptr);
     
     // Start SensorTask: 2048-byte stack, no input, priority 1, no saved handle.
     BaseType_t resultA = xTaskCreate(
@@ -42,5 +46,10 @@ extern "C" void app_main(void)
     BaseType_t inputResult = xTaskCreate(
         inputTask, "InputTask", 3072, nullptr, 3, nullptr);
     configASSERT(inputResult == pdPASS);
+
+    // Evaluate new temperatures promptly, then block for the next reading.
+    BaseType_t alarmResult = xTaskCreate(
+        alarmTask, "AlarmTask", 3072, nullptr, 2, nullptr);
+    configASSERT(alarmResult == pdPASS);
 }
 
