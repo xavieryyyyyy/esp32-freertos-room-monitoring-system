@@ -37,6 +37,12 @@ extern "C" void app_main(void)
     // Create shared status flags before any task accesses them.
     systemEvents = xEventGroupCreate();
     configASSERT(systemEvents != nullptr);
+
+    // Create the diagnostic-output mutex before starting any tasks.
+    serialMutex = xSemaphoreCreateMutex();
+
+    // Stop here if there wasn't enough memory to create it.
+    configASSERT(serialMutex != nullptr);
     
     // Start SensorTask: 2048-byte stack, no input, priority 1, no saved handle.
     BaseType_t resultA = xTaskCreate(

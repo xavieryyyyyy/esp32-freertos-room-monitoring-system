@@ -42,32 +42,38 @@ void sensorTask(void *parameter)
         esp_err_t result = dht_read_float_data(
             DHT_TYPE_AM2301, GPIO_NUM_4, &humidity, &temperature);
 
-        if (result == ESP_OK) {
-            ESP_LOGI(TAG, "Temperature: %.2f C | Humidity: %.2f %%",
-                     temperature, humidity);
-            
         // Publish temperature independently of the light measurement.
+        if (result == ESP_OK) {
             xQueueOverwrite(alarmQueue, &temperature);
-
-        } else {
-            ESP_LOGW(TAG, "DHT read failed: %s",
-                     esp_err_to_name(result));
         }
-        
-        // Read the LDR voltage as a raw 12-bit ADC value.
+
+        // Read the LDR before taking the output mutex.
         int lightRaw = 0;
         esp_err_t lightResult = adc_oneshot_read(
             adcHandle, ADC_CHANNEL_6, &lightRaw);
 
-        if (lightResult == ESP_OK) {
-            // Invert the ADC scale: lower voltage means brighter light.
-            // Relative indication only; this is not calibrated lux.
-            int lightPercent = ((4095 - lightRaw) * 100) / 4095;
+        // Both reads are finished. Lock only while printing the report.
+        if (xSemaphoreTake(serialMutex, portMAX_DELAY) == pdTRUE) {
+            if (result == ESP_OK) {
+                ESP_LOGI(TAG, "Temperature: %.2f C | Humidity: %.2f %%",
+                         temperature, humidity);
+            } else {
+                ESP_LOGW(TAG, "DHT read failed: %s",
+                         esp_err_to_name(result));
+            }
 
-            ESP_LOGI(TAG, "Light: %d%% | Raw: %d", lightPercent, lightRaw);
-        } else {
-            ESP_LOGW(TAG, "LDR read failed: %s",
-                     esp_err_to_name(lightResult));
+            if (lightResult == ESP_OK) {
+                // Relative brightness, not calibrated lux.
+                int lightPercent = ((4095 - lightRaw) * 100) / 4095;
+                ESP_LOGI(TAG, "Light: %d%% | Raw: %d",
+                         lightPercent, lightRaw);
+            } else {
+                ESP_LOGW(TAG, "LDR read failed: %s",
+                         esp_err_to_name(lightResult));
+            }
+
+            // Let another task print.
+            xSemaphoreGive(serialMutex);
         }
         
         // Send only when both sensor reads succeeded.
@@ -76,11 +82,14 @@ void sensorTask(void *parameter)
             readings.temperature = temperature;
             readings.humidity = humidity;
             readings.lightLevel = ((4095 - lightRaw) * 100) / 4095;
-            // motionDetected remains false; PIR is not implemented yet.
+            // Motion is communicated separately through systemEvents.
 
             // Copy the readings into the queue without waiting.
             if (xQueueSend(sensorQueue, &readings, 0) != pdTRUE) {
-                ESP_LOGW(TAG, "Sensor queue full; reading dropped");
+                if (xSemaphoreTake(serialMutex, portMAX_DELAY) == pdTRUE) {
+                    ESP_LOGW(TAG, "Sensor queue full; reading dropped");
+                    xSemaphoreGive(serialMutex);
+                }
             }
         }
         

@@ -32,18 +32,26 @@ void stateTask(void *parameter)
 
         SystemState state =
             determineSystemState(motionDetected, elapsedMs);
+         
+        // Update and log only when the state changes.
+        if (state != previousState) {       
+        
+            // Publish the new state before waiting to print.
+        if (state == SystemState::INACTIVE) {
+            xEventGroupSetBits(systemEvents, EVENT_INACTIVE);
+        } else {
+            xEventGroupClearBits(systemEvents, EVENT_INACTIVE);
+        }
 
-        // Publish and log only when the state changes.
-        if (state != previousState) {
-            if (state == SystemState::INACTIVE) {
-                xEventGroupSetBits(systemEvents, EVENT_INACTIVE);
-                ESP_LOGI(TAG, "INACTIVE");
-            } else {
-                xEventGroupClearBits(systemEvents, EVENT_INACTIVE);
-                ESP_LOGI(TAG, "ACTIVE");
-            }
+        // Keep this message outside another task's protected report.
+        if (xSemaphoreTake(serialMutex, portMAX_DELAY) == pdTRUE) {
+             ESP_LOGI(TAG, "%s",
+             state == SystemState::INACTIVE ? "INACTIVE" : "ACTIVE");
 
-            previousState = state;
+            xSemaphoreGive(serialMutex);
+        }
+
+        previousState = state;
         }
 
         // Check every 50 ms, allowing other tasks to run between checks.

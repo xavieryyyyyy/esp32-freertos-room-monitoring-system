@@ -72,8 +72,13 @@ void inputTask(void *parameter)
 
             // Publish the latest selected page.
             xQueueOverwrite(displayModeQueue, &currentMode);
-            ESP_LOGI(TAG, "Encoder: %s",
-                     clockwise ? "clockwise" : "counterclockwise");
+            // Print only after any other protected report finishes.
+        if (xSemaphoreTake(serialMutex, portMAX_DELAY) == pdTRUE) {
+             ESP_LOGI(TAG, "Encoder: %s",
+             clockwise ? "clockwise" : "counterclockwise");
+
+            xSemaphoreGive(serialMutex);
+}
         }
     }
 }

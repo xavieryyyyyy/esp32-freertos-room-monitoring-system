@@ -51,11 +51,20 @@ void displayTask(void *parameter)
 
         if (inactive) {
         ssd1306_display_off(&oled);
-        ESP_LOGI(TAG, "OLED off");
+        // Protect diagnostic output after switching the OLED off.
+        if (xSemaphoreTake(serialMutex, portMAX_DELAY) == pdTRUE) {
+            ESP_LOGI(TAG, "OLED off");
+            xSemaphoreGive(serialMutex);
+        }
         } else {
         ssd1306_display_on(&oled);
         redraw = true; // Refresh the selected page after waking.
+        
+        // Protect diagnostic output after switching the OLED on.
+        if (xSemaphoreTake(serialMutex, portMAX_DELAY) == pdTRUE) {
         ESP_LOGI(TAG, "OLED on");
+        xSemaphoreGive(serialMutex);
+}
     }
 }
         
@@ -117,7 +126,12 @@ void displayTask(void *parameter)
             ssd1306_clear_line(&oled, 4, false);
             ssd1306_display_text(&oled, 2, label, strlen(label), false);
             ssd1306_display_text(&oled, 4, text, strlen(text), false);
-            ESP_LOGI(TAG, "%s: %s", label, text);
+            
+            // Keep the page message outside another task's report.
+            if (xSemaphoreTake(serialMutex, portMAX_DELAY) == pdTRUE) {
+                ESP_LOGI(TAG, "%s: %s", label, text);
+                xSemaphoreGive(serialMutex);
+}
         }
     } // End of repeating loop.
 } // End of displayTask.

@@ -44,17 +44,26 @@ void alarmTask(void *parameter)
             ESP_ERROR_CHECK(ledc_update_duty(
                 LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0));
 
-            switch (state) {
-                case AlarmState::NORMAL:
-                    ESP_LOGI(TAG, "NORMAL: %.2f C", temperature);
-                    break;
-                case AlarmState::LOW_TEMPERATURE:
-                    ESP_LOGW(TAG, "LOW temperature: %.2f C", temperature);
-                    break;
-                case AlarmState::HIGH_TEMPERATURE:
-                    ESP_LOGW(TAG, "HIGH temperature: %.2f C", temperature);
-                    break;
-            }
+           // Wait for other tasks to finish their diagnostic report.
+           if (xSemaphoreTake(serialMutex, portMAX_DELAY) == pdTRUE) {
+            
+        switch (state) {
+            case AlarmState::NORMAL:
+                ESP_LOGI(TAG, "NORMAL: %.2f C", temperature);
+                break;
+
+            case AlarmState::LOW_TEMPERATURE:
+                ESP_LOGW(TAG, "LOW temperature: %.2f C", temperature);
+                break;
+
+            case AlarmState::HIGH_TEMPERATURE:
+                ESP_LOGW(TAG, "HIGH temperature: %.2f C", temperature);
+                break;
+    }
+
+    // Release the output resource after printing.
+    xSemaphoreGive(serialMutex);
+}
         }
     }
 }

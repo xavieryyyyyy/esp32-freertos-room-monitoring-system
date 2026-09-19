@@ -12,3 +12,6 @@ QueueHandle_t alarmQueue = nullptr;
 
 // Created during startup; shared by tasks that publish or read status.
 EventGroupHandle_t systemEvents = nullptr;
+
+// Created in app_main before any task prints protected reports.
+SemaphoreHandle_t serialMutex = nullptr;

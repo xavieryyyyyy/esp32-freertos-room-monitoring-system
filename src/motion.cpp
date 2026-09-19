@@ -34,7 +34,13 @@ void motionTask(void *parameter)
                 xEventGroupClearBits(systemEvents, EVENT_MOTION);
             }
             
+           // Wait until another task finishes its diagnostic report.
+           if (xSemaphoreTake(serialMutex, portMAX_DELAY) == pdTRUE) {
             ESP_LOGI(TAG, "%s", level ? "Motion detected" : "No motion");
+
+            // Release the mutex so another task can print.
+            xSemaphoreGive(serialMutex);
+}
             previousLevel = level;
         }
 
