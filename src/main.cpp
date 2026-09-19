@@ -8,6 +8,8 @@
 #include "display_mode.h" // Type of page-selection messages.
 #include "input.h" // Rotary-encoder task.
 #include "alarm.h" // AlarmTask declaration.
+#include "motion.h" // PIR monitoring task.
+#include "system_state.h" // Declares the activity-state task.
 
 // Label attached to our log messages so we can identify their source.
 static const char *TAG = "ROOM_MONITOR";
@@ -31,6 +33,10 @@ extern "C" void app_main(void)
     // Keep the latest temperature for AlarmTask.
     alarmQueue = xQueueCreate(1, sizeof(float));
     configASSERT(alarmQueue != nullptr);
+
+    // Create shared status flags before any task accesses them.
+    systemEvents = xEventGroupCreate();
+    configASSERT(systemEvents != nullptr);
     
     // Start SensorTask: 2048-byte stack, no input, priority 1, no saved handle.
     BaseType_t resultA = xTaskCreate(
@@ -51,5 +57,17 @@ extern "C" void app_main(void)
     BaseType_t alarmResult = xTaskCreate(
         alarmTask, "AlarmTask", 3072, nullptr, 2, nullptr);
     configASSERT(alarmResult == pdPASS);
+
+    // Check motion promptly, blocking between polls.
+    BaseType_t motionResult = xTaskCreate(
+        motionTask, "MotionTask", 2048, nullptr, 3, nullptr);
+    configASSERT(motionResult == pdPASS);
+
+    // Track inactivity; priority 2, with a 2048-byte stack.
+    BaseType_t stateResult = xTaskCreate(
+    stateTask, "StateTask", 2048, nullptr, 2, nullptr);
+
+    // Verify that FreeRTOS successfully created the task.
+    configASSERT(stateResult == pdPASS);
 }
 

@@ -30,10 +30,45 @@ void displayTask(void *parameter)
     // Remember the selected page and whether sensor data has arrived.
     DisplayMode currentMode = DisplayMode::TEMPERATURE;
     bool haveReadings = false;
+       
+    // Track motion separately from queued environmental measurements.
+    bool motionDetected = false;
 
+    // Remember whether the OLED is currently powered off.
+    bool displayInactive = false;
+    
     while (true)
     {
         bool redraw = false;
+
+        // Read the activity state published by StateTask.
+        bool inactive =
+        (xEventGroupGetBits(systemEvents) & EVENT_INACTIVE) != 0;
+
+        // Send a power command only when the state changes.
+        if (inactive != displayInactive) {
+        displayInactive = inactive;
+
+        if (inactive) {
+        ssd1306_display_off(&oled);
+        ESP_LOGI(TAG, "OLED off");
+        } else {
+        ssd1306_display_on(&oled);
+        redraw = true; // Refresh the selected page after waking.
+        ESP_LOGI(TAG, "OLED on");
+    }
+}
+        
+        // Read the motion bit without clearing it.
+        bool latestMotion =
+            (xEventGroupGetBits(systemEvents) & EVENT_MOTION) != 0;
+
+        if (latestMotion != motionDetected) {
+            motionDetected = latestMotion;
+            if (currentMode == DisplayMode::MOTION) {
+                redraw = true;
+            }
+        }
 
         // Wait briefly for measurements so page changes stay responsive.
         if (xQueueReceive(sensorQueue, &readings,
@@ -49,8 +84,9 @@ void displayTask(void *parameter)
             redraw = true;
         }
 
-        // Draw only when something changed and measurements are available.
-        if (redraw && haveReadings)
+        // Draw only while active and when the selected page has data.
+        if (!displayInactive && redraw &&
+        (currentMode == DisplayMode::MOTION || haveReadings))
         {
             const char *label = "";
             char text[17] = {};
@@ -71,8 +107,8 @@ void displayTask(void *parameter)
                 break;
             case DisplayMode::MOTION:
                 label = "Motion";
-                // PIR sensing has not been implemented yet.
-                snprintf(text, sizeof(text), "Not ready");
+                snprintf(text, sizeof(text), "%s",
+                         motionDetected ? "Detected" : "No motion");
                 break;
             }
 
