@@ -23,7 +23,6 @@ void alarmTask(void *parameter)
     channelConfig.gpio_num = 25;
     channelConfig.speed_mode = LEDC_LOW_SPEED_MODE;
     channelConfig.channel = LEDC_CHANNEL_0;
-    channelConfig.intr_type = LEDC_INTR_DISABLE;
     channelConfig.timer_sel = LEDC_TIMER_0;
     channelConfig.duty = 0;
     channelConfig.hpoint = 0;
