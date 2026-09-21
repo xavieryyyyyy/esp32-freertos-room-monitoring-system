@@ -1,2 +1,14 @@
+# Build artifacts
 .pio/
+
+# Auto-generated VS Code files (machine-specific paths)
+.vscode/c_cpp_properties.json
+.vscode/*.log
+
+# Dependencies and component caches
 managed_components/
+dependencies.lock
+
+# Temporary and backup files
+humanizer-main/
+*.old
