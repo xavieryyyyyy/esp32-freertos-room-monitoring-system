@@ -1,6 +1,5 @@
 # BCA152 Oral Defense Answers
 
-Course: BCA152 Microcontrollers · MSU-IIT · Asst. Prof. Paul Rodolf P. Castor, M.Sc.
 Student: Yestin Paraguya
 Project: Real-Time Multisensor Room Monitoring System with FreeRTOS
 
