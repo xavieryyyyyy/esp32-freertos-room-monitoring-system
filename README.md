@@ -31,20 +31,9 @@
 
 <div align="center">
 
-[![Operational Room Multisensor Running in Wokwi](docs/images/system_running.png)](https://youtu.be/mw-oIcxFS5U)
+https://github.com/user-attachments/assets/f00755b4-baf9-45d9-9289-22a3574bfbf0
 
-_<img src="https://api.iconify.design/lucide/video.svg?color=%236366f1&width=14&height=14" /> Click the image to watch the full 3-minute demo on YouTube_
-
-<br><br>
-
-<details>
-<summary><img src="https://api.iconify.design/lucide/video.svg?color=%236366f1&width=16&height=16" /> <b>system_running.mp4</b></summary>
-
-<br>
-
-https://github.com/xavieryyyyyy/esp32-freertos-room-monitoring-system/raw/main/docs/images/system_running.mp4
-
-</details>
+_<img src="https://api.iconify.design/lucide/video.svg?color=%236366f1&width=14&height=14" /> Real-time system demonstration running in Wokwi simulator · [Watch on YouTube](https://youtu.be/mw-oIcxFS5U)_
 
 </div>
 
@@ -360,9 +349,7 @@ All 10 functional requirements validated in the Wokwi simulator:
 <details>
 <summary><img src="https://api.iconify.design/lucide/video.svg?color=%236366f1&width=16&height=16" /> <b>system_running.mp4</b></summary>
 
-<br>
-
-https://github.com/xavieryyyyyy/esp32-freertos-room-monitoring-system/raw/main/docs/images/system_running.mp4
+https://github.com/user-attachments/assets/f00755b4-baf9-45d9-9289-22a3574bfbf0
 
 </details>
 
