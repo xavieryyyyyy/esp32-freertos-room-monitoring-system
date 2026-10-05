@@ -11,6 +11,21 @@
 // Label for messages from the sensor module.
 static const char *TAG = "ROOM_MONITOR";
 
+// Observed Wokwi slider endpoints for this circuit, not lux calibration.
+static constexpr int LIGHT_BRIGHT_RAW = 32;
+static constexpr int LIGHT_DARK_RAW = 4063;
+
+static int relativeLightPercent(int raw)
+{
+    // Clamp readings outside the observed endpoints to 0-100%.
+    if (raw <= LIGHT_BRIGHT_RAW) return 100;
+    if (raw >= LIGHT_DARK_RAW) return 0;
+
+    const int span = LIGHT_DARK_RAW - LIGHT_BRIGHT_RAW;
+    // Invert the scale and round to the nearest whole percent.
+    return ((LIGHT_DARK_RAW - raw) * 100 + span / 2) / span;
+}
+
 // Read temperature, humidity, and light approximately every two seconds.
 void sensorTask(void *parameter)
 {
@@ -52,6 +67,10 @@ void sensorTask(void *parameter)
         esp_err_t lightResult = adc_oneshot_read(
             adcHandle, ADC_CHANNEL_6, &lightRaw);
 
+        // Use the same converted value for terminal output and the OLED queue.
+        const int lightPercent = (lightResult == ESP_OK)
+            ? relativeLightPercent(lightRaw) : 0;
+
         // Both reads are finished. Lock only while printing the report.
         if (xSemaphoreTake(serialMutex, portMAX_DELAY) == pdTRUE) {
             if (result == ESP_OK) {
@@ -63,8 +82,6 @@ void sensorTask(void *parameter)
             }
 
             if (lightResult == ESP_OK) {
-                // Relative brightness, not calibrated lux.
-                int lightPercent = ((4095 - lightRaw) * 100) / 4095;
                 ESP_LOGI(TAG, "Light: %d%% | Raw: %d",
                          lightPercent, lightRaw);
             } else {
@@ -81,7 +98,7 @@ void sensorTask(void *parameter)
             SensorData readings{};
             readings.temperature = temperature;
             readings.humidity = humidity;
-            readings.lightLevel = ((4095 - lightRaw) * 100) / 4095;
+            readings.lightLevel = lightPercent;
             // Motion is communicated separately through systemEvents.
 
             // Copy the readings into the queue without waiting.
